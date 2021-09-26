@@ -1,2 +1,2 @@
-universal_acdc.pl -split all.spawn -out levels -use -way -scan config/ -nofatal
+universal_acdc.pl -split all.spawn -way -nofatal
 pause

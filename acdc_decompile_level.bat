@@ -1,2 +1,2 @@
-universal_acdc.pl -d levels\l01_escape\level.spawn -level
+universal_acdc.pl -d level.spawn -level
 pause

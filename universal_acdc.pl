@@ -1,5 +1,14 @@
 # S.T.A.L.K.E.R *.spawn files unpacker
 # Update history:
+# 1.38:
+#	[!] fix release LA spawn unpacking
+#	[!] fix parse and convert
+# 1.37:
+#	[+] LA spawn unpacking added
+#	[!] all unrecognized ways during 'split' goes to 'unrecognized_ways.game'
+# 1.36:
+#	[!] fixed scanning sections with spaces in beginning
+#	[!] fixed spawn splitting
 # 1.35:
 #	[!] fixed version auto-assigning
 #	[!] removed game.graph reading when compiling
@@ -356,7 +365,7 @@ sub read_alife {
 					$object->{cse_object}->{ini} =  $self->get_ini();
 					$object->{cse_object}->{user_ini} =  $self->get_user_ini();
 					$object->read($cf, $self->get_version());
-					$self->set_flag($object->{cse_object}->{flags} & 0x1F);	# exclude entity specific flags
+					$self->set_flag($object->{cse_object}->{flags} & 0x9F);	# exclude entity specific flags
 					$self->set_ini($object->{cse_object}->{ini});
 					push @{$self->{alife_objects}}, $object;
 					$cf->r_chunk_close();
@@ -443,8 +452,10 @@ sub read_graph {
 # writing
 sub write {
 	my $self = shift;
-	$self->set_version((@{$self->{alife_objects}}[0])->{cse_object}->{version});
-	$self->set_script_version((@{$self->{alife_objects}}[0])->{cse_object}->{script_version});
+	if ($#{$self->{alife_objects}} > -1) {			# check if there is no objects
+		$self->set_version((@{$self->{alife_objects}}[0])->{cse_object}->{version});
+		$self->set_script_version((@{$self->{alife_objects}}[0])->{cse_object}->{script_version});
+	}
 	$self->{graph_version} = $self->check_graph_version();
 	my $cf = stkutils::chunked->new($self->get_out(), 'w') or fail($self->get_out().": $!\n");
 	if (!$self->level()) {
@@ -553,7 +564,7 @@ sub write_af_spawn {
 sub write_way {
 	my $self = shift;
 	my ($cf) = @_;
-	if (defined @{$self->{way_objects}}) {
+	if (@{$self->{way_objects}}) {
 		print "writing way objects...\n";
 		$cf->w_chunk_open(3);
 		$cf->w_chunk(0, pack('V', $#{$self->{way_objects}} + 1));
@@ -940,7 +951,7 @@ sub export_way {
 	
 	# init prefixes
 	my $prefixes = $self->init_way_prefixes();
-	if (defined @{$self->{way_objects}}) {
+	if (@{$self->{way_objects}}) {
 		my %info_by_level;
 
 		foreach my $object (@{$self->{way_objects}}) {
@@ -1107,6 +1118,7 @@ sub read_level_spawns {
 	print "splitting spawns...\n";
 	# prepare arrays with level spawns
 	foreach my $level (values %{$self->{graph}->{level_by_guid}}) {
+		next if ($level eq '_level_unknown');
 		my $level_spawn = all_spawn->new();
 		$level_spawn->{level_name} = $level;
 		$level_spawn->{config}->{common}->{src} = $level_spawn->{config}->{common}->{out} = $level.'/level.spawn';
@@ -1128,6 +1140,7 @@ sub split_spawns {
 #			$object->{cse_object}->{game_vertex_id} = 0xFFFF;
 			$object->{cse_object}->{level_vertex_id} = 0xFFFFFFFF;
 			$object->{cse_object}->{distance} = 0;
+			$object->{cse_object}->{flags} |= FL_LEVEL_SPAWN;
 			push @{$ls->{alife_objects}}, $object;
 		}
 	}
@@ -1155,7 +1168,11 @@ sub split_ways {
 		if (!defined $info) {
 			$info = {};
 			rename $level.'/level.game', $level.'/level.game.bak' or (unlink $level.'/level.game.bak' and rename $level.'/level.game', $level.'/level.game.bak') ;
-			$info->{lif} = stkutils::chunked->new($level.'/level.game', 'w') or fail("$level/level.game: $!\n");
+			if ($level ne '_level_unknown') {									# workaround for split mode
+				$info->{lif} = stkutils::chunked->new($level.'/level.game', 'w') or fail("$level/level.game: $!\n");
+			} else {
+				$info->{lif} = stkutils::chunked->new('unrecognized_ways.game', 'w') or fail("unrecognized_ways.game: $!\n");
+			}
 			$info->{way_objects} = ();
 			$info_by_level{$level} = $info;
 		}
@@ -1362,7 +1379,7 @@ use Cwd;
 #use diagnostics;
 $SIG{__WARN__} = sub {warn(@_);};
 
-my $VERSION = '1.34';
+my $VERSION = '1.38';
 
 # creating all_spawn object
 my $spawn = all_spawn->new();
@@ -1524,7 +1541,7 @@ sub convert {
 		$common->{out} = 'converted' unless defined $common->{out};
 		print "importing alife objects...\n";
 		$spawn->import_level($spawn->get_src());
-		fix_versions();
+#		fix_versions();
 		process_converting();
 		print "exporting alife objects...\n";
 		$spawn->export_level($spawn->get_out());		
@@ -1560,7 +1577,7 @@ sub parse {
 	$spawn->import_level($spawn->get_src());
 	$common->{out} = 'parsed_spawn' unless defined $common->{out};
 	create_outdir($common->{out});
-	fix_versions();	
+#	fix_versions();	
 	foreach my $object (@{$spawn->{alife_objects}}) {
 		$object->{cse_object}->{game_vertex_id} += ($spawn->get_new_gvid() - $spawn->get_old_gvid());
 	}	

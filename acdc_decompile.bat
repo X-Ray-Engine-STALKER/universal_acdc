@@ -1,2 +1,2 @@
-universal_acdc.pl -d all.spawn -out all -sort complex -nofatal
+universal_acdc.pl -d all.spawn -out all_cs -sort complex -nofatal
 pause
