@@ -4,6 +4,9 @@
 Версия скрипта:
 **1.38** (*2014.05.21*)
 
+Исходный код взят отсюда:
+[AMK форум](https://www.amk-team.ru/forum/topic/11568-universal-acdc-i-drugie-perl-skripty/?tab=comments#comment-627809)
+
 Для работы необходим **Active Perl**, который нужно [скачать с официального сайта](https://www.activestate.com/products/perl/downloads/).
 
 Так же необходимо установить зависимости:
